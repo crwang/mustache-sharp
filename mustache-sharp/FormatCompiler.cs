@@ -103,6 +103,7 @@ namespace Mustache
             if (!_regexLookup.TryGetValue(definition.Name, out regex))
             {
                 List<string> matches = new List<string>();
+                matches.Add(getHtmlKeyRegex());
                 matches.Add(getKeyRegex());
                 matches.Add(getCommentTagRegex());
                 foreach (string closingTag in definition.ClosingTags)
@@ -146,6 +147,11 @@ namespace Mustache
         private static string getKeyRegex()
         {
             return @"((?<key>@?" + RegexHelper.CompoundKey + @")(,(?<alignment>(\+|-)?[\d]+))?(:(?<format>.*?))?)";
+        }
+
+        private static string getHtmlKeyRegex()
+        {
+            return @"{((?<htmlKey>@?" + RegexHelper.CompoundKey + @")(,(?<alignment>(\+|-)?[\d]+))?(:(?<format>.*?))?)}";
         }
 
         private static string getTagRegex(TagDefinition definition)
@@ -195,7 +201,7 @@ namespace Mustache
                 }
 
                 string leading = format.Substring(formatIndex, match.Index - formatIndex);
-
+                
                 if (match.Groups["key"].Success)
                 {
                     generator.AddGenerator(new StaticGenerator(leading));
@@ -225,9 +231,42 @@ namespace Mustache
                             formatting = args.Formatting;
                         }
                     }
-                    KeyGenerator keyGenerator = new KeyGenerator(key, alignment, formatting);
+                    KeyGenerator keyGenerator = new KeyGenerator(key, alignment, formatting, false);
                     generator.AddGenerator(keyGenerator);
                 }
+                else
+                    if (match.Groups["htmlKey"].Success)
+                    {
+                        generator.AddGenerator(new StaticGenerator(leading));
+                        formatIndex = match.Index + match.Length;
+                        string key = match.Groups["htmlKey"].Value;
+                        string alignment = match.Groups["alignment"].Value;
+                        string formatting = match.Groups["format"].Value;
+                        if (key.StartsWith("@"))
+                        {
+                            VariableFoundEventArgs args = new VariableFoundEventArgs(key.Substring(1), alignment, formatting, context.ToArray());
+                            if (VariableFound != null)
+                            {
+                                VariableFound(this, args);
+                                key = "@" + args.Name;
+                                alignment = args.Alignment;
+                                formatting = args.Formatting;
+                            }
+                        }
+                        else
+                        {
+                            PlaceholderFoundEventArgs args = new PlaceholderFoundEventArgs(key, alignment, formatting, context.ToArray());
+                            if (PlaceholderFound != null)
+                            {
+                                PlaceholderFound(this, args);
+                                key = args.Key;
+                                alignment = args.Alignment;
+                                formatting = args.Formatting;
+                            }
+                        }
+                        KeyGenerator keyGenerator = new KeyGenerator(key, alignment, formatting);
+                        generator.AddGenerator(keyGenerator);
+                    }
                 else if (match.Groups["open"].Success)
                 {
                     formatIndex = match.Index + match.Length;

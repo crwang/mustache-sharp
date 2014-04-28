@@ -2,7 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
 using System.Reflection;
 
 namespace Mustache
@@ -12,10 +11,10 @@ namespace Mustache
     /// </summary>
     internal sealed class PropertyDictionary : IDictionary<string, object>
     {
-        private static readonly Dictionary<Type, Dictionary<string, Func<object, object>>> _cache = new Dictionary<Type, Dictionary<string, Func<object, object>>>();
+        private static readonly Dictionary<Type, Dictionary<string, PropertyInfo>> _cache = new Dictionary<Type, Dictionary<string, PropertyInfo>>();
 
         private readonly object _instance;
-        private readonly Dictionary<string, Func<object, object>> _typeCache;
+        private readonly Dictionary<string, PropertyInfo> _typeCache;
 
         /// <summary>
         /// Initializes a new instance of a PropertyDictionary.
@@ -26,7 +25,7 @@ namespace Mustache
             _instance = instance;
             if (instance == null)
             {
-                _typeCache = new Dictionary<string, Func<object, object>>();
+                _typeCache = new Dictionary<string, PropertyInfo>();
             }
             else
             {
@@ -34,62 +33,24 @@ namespace Mustache
             }
         }
 
-        private static Dictionary<string, Func<object, object>> getCacheType(object instance)
+        private static Dictionary<string, PropertyInfo> getCacheType(object instance)
         {
             Type type = instance.GetType();
-            Dictionary<string, Func<object, object>> typeCache;
+            Dictionary<string, PropertyInfo> typeCache;
             if (!_cache.TryGetValue(type, out typeCache))
             {
-                typeCache = new Dictionary<string, Func<object, object>>();
-                
+                typeCache = new Dictionary<string, PropertyInfo>();
                 BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.FlattenHierarchy;
-                
-                var properties = getMembers(type, type.GetProperties(flags).Where(p => !p.IsSpecialName));
-                foreach (PropertyInfo propertyInfo in properties)
+                foreach (PropertyInfo propertyInfo in type.GetProperties(flags))
                 {
-                    typeCache.Add(propertyInfo.Name, i => propertyInfo.GetValue(i, null));
+                    if (!propertyInfo.IsSpecialName)
+                    {
+                        typeCache.Add(propertyInfo.Name, propertyInfo);
+                    }
                 }
-
-                var fields = getMembers(type, type.GetFields(flags).Where(f => !f.IsSpecialName));
-                foreach (FieldInfo fieldInfo in fields)
-                {
-                    typeCache.Add(fieldInfo.Name, i => fieldInfo.GetValue(i));
-                }
-                
                 _cache.Add(type, typeCache);
             }
             return typeCache;
-        }
-
-        private static IEnumerable<TMember> getMembers<TMember>(Type type, IEnumerable<TMember> members)
-            where TMember : MemberInfo
-        {
-            var singles = from member in members
-                          group member by member.Name into nameGroup
-                          where nameGroup.Count() == 1
-                          from property in nameGroup
-                          select property;
-            var multiples = from member in members
-                            group member by member.Name into nameGroup
-                            where nameGroup.Count() > 1
-                            select
-                            (
-                                from member in nameGroup
-                                orderby getDistance(type, member)
-                                select member
-                            ).First();
-            var combined = singles.Concat(multiples);
-            return combined;
-        }
-
-        private static int getDistance(Type type, MemberInfo memberInfo)
-        {
-            int distance = 0;
-            for (; type != null && type != memberInfo.DeclaringType; type = type.BaseType)
-            {
-                ++distance;
-            }
-            return distance;
         }
 
         /// <summary>
@@ -139,13 +100,13 @@ namespace Mustache
         /// <exception cref="System.ArgumentNullException">The name of the property was null.</exception>
         public bool TryGetValue(string key, out object value)
         {
-            Func<object, object> getter;
-            if (!_typeCache.TryGetValue(key, out getter))
+            PropertyInfo propertyInfo;
+            if (!_typeCache.TryGetValue(key, out propertyInfo))
             {
                 value = null;
                 return false;
             }
-            value = getter(_instance);
+            value = getValue(propertyInfo);
             return true;
         }
 
@@ -156,11 +117,11 @@ namespace Mustache
         {
             get
             {
-                ICollection<Func<object, object>> getters = _typeCache.Values;
+                ICollection<PropertyInfo> propertyInfos = _typeCache.Values;
                 List<object> values = new List<object>();
-                foreach (Func<object, object> getter in getters)
+                foreach (PropertyInfo propertyInfo in propertyInfos)
                 {
-                    object value = getter(_instance);
+                    object value = getValue(propertyInfo);
                     values.Add(value);
                 }
                 return values.AsReadOnly();
@@ -182,8 +143,8 @@ namespace Mustache
         {
             get
             {
-                Func<object, object> getter = _typeCache[key];
-                return getter(_instance);
+                PropertyInfo propertyInfo = _typeCache[key];
+                return getValue(propertyInfo);
             }
             [EditorBrowsable(EditorBrowsableState.Never)]
             set
@@ -206,23 +167,23 @@ namespace Mustache
 
         bool ICollection<KeyValuePair<string, object>>.Contains(KeyValuePair<string, object> item)
         {
-            Func<object, object> getter;
-            if (!_typeCache.TryGetValue(item.Key, out getter))
+            PropertyInfo propertyInfo;
+            if (!_typeCache.TryGetValue(item.Key, out propertyInfo))
             {
                 return false;
             }
-            object value = getter(_instance);
+            object value = getValue(propertyInfo);
             return Equals(item.Value, value);
         }
 
         void ICollection<KeyValuePair<string, object>>.CopyTo(KeyValuePair<string, object>[] array, int arrayIndex)
         {
             List<KeyValuePair<string, object>> pairs = new List<KeyValuePair<string, object>>();
-            ICollection<KeyValuePair<string, Func<object, object>>> collection = _typeCache;
-            foreach (KeyValuePair<string, Func<object, object>> pair in collection)
+            ICollection<KeyValuePair<string, PropertyInfo>> collection = _typeCache;
+            foreach (KeyValuePair<string, PropertyInfo> pair in collection)
             {
-                Func<object, object> getter = pair.Value;
-                object value = getter(_instance);
+                PropertyInfo propertyInfo = pair.Value;
+                object value = getValue(propertyInfo);
                 pairs.Add(new KeyValuePair<string, object>(pair.Key, value));
             }
             pairs.CopyTo(array, arrayIndex);
@@ -256,10 +217,9 @@ namespace Mustache
         /// <returns></returns>
         public IEnumerator<KeyValuePair<string, object>> GetEnumerator()
         {
-            foreach (KeyValuePair<string, Func<object, object>> pair in _typeCache)
+            foreach (KeyValuePair<string, PropertyInfo> pair in _typeCache)
             {
-                Func<object, object> getter = pair.Value;
-                object value = getter(_instance);
+                object value = getValue(pair.Value);
                 yield return new KeyValuePair<string, object>(pair.Key, value);
             }
         }
@@ -267,6 +227,11 @@ namespace Mustache
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
+        }
+
+        private object getValue(PropertyInfo propertyInfo)
+        {
+            return propertyInfo.GetValue(_instance, null);
         }
     }
 }

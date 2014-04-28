@@ -35,29 +35,29 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ArgumentCollection.cs" />
-    <Compile Include="CompoundGenerator.cs" />
-    <Compile Include="ConditionTagDefinition.cs" />
-    <Compile Include="ContentTagDefinition.cs" />
+    <Compile Include="Generators\CompoundGenerator.cs" />
+    <Compile Include="TagDefinitions\ConditionTagDefinition.cs" />
+    <Compile Include="TagDefinitions\ContentTagDefinition.cs" />
     <Compile Include="Context.cs" />
     <Compile Include="ContextParameter.cs" />
-    <Compile Include="VariableFoundEventArgs.cs" />
-    <Compile Include="SetTagDefinition.cs" />
-    <Compile Include="NewlineTagDefinition.cs" />
-    <Compile Include="IndexTagDefinition.cs" />
-    <Compile Include="KeyFoundEventArgs.cs" />
-    <Compile Include="InlineTagDefinition.cs" />
-    <Compile Include="EachTagDefinition.cs" />
-    <Compile Include="ElifTagDefinition.cs" />
-    <Compile Include="ElseTagDefinition.cs" />
+    <Compile Include="EventArgs\VariableFoundEventArgs.cs" />
+    <Compile Include="TagDefinitions\SetTagDefinition.cs" />
+    <Compile Include="TagDefinitions\NewlineTagDefinition.cs" />
+    <Compile Include="TagDefinitions\IndexTagDefinition.cs" />
+    <Compile Include="EventArgs\KeyFoundEventArgs.cs" />
+    <Compile Include="TagDefinitions\InlineTagDefinition.cs" />
+    <Compile Include="TagDefinitions\EachTagDefinition.cs" />
+    <Compile Include="TagDefinitions\ElifTagDefinition.cs" />
+    <Compile Include="TagDefinitions\ElseTagDefinition.cs" />
     <Compile Include="FormatCompiler.cs" />
-    <Compile Include="Generator.cs" />
-    <Compile Include="IfTagDefinition.cs" />
-    <Compile Include="IGenerator.cs" />
-    <Compile Include="InlineGenerator.cs" />
-    <Compile Include="PlaceholderFoundEventArgs.cs" />
-    <Compile Include="KeyGenerator.cs" />
-    <Compile Include="MasterTagDefinition.cs" />
-    <Compile Include="KeyNotFoundEventArgs.cs" />
+    <Compile Include="Generators\Generator.cs" />
+    <Compile Include="TagDefinitions\IfTagDefinition.cs" />
+    <Compile Include="Generators\IGenerator.cs" />
+    <Compile Include="Generators\InlineGenerator.cs" />
+    <Compile Include="EventArgs\PlaceholderFoundEventArgs.cs" />
+    <Compile Include="Generators\KeyGenerator.cs" />
+    <Compile Include="TagDefinitions\MasterTagDefinition.cs" />
+    <Compile Include="EventArgs\KeyNotFoundEventArgs.cs" />
     <Compile Include="NestedContext.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
@@ -67,12 +67,12 @@
     </Compile>
     <Compile Include="PropertyDictionary.cs" />
     <Compile Include="RegexHelper.cs" />
-    <Compile Include="StaticGenerator.cs" />
-    <Compile Include="TagDefinition.cs" />
+    <Compile Include="Generators\StaticGenerator.cs" />
+    <Compile Include="TagDefinitions\TagDefinition.cs" />
     <Compile Include="TagParameter.cs" />
     <Compile Include="Scope.cs" />
-    <Compile Include="ValueRequestEventArgs.cs" />
-    <Compile Include="WithTagDefinition.cs" />
+    <Compile Include="EventArgs\ValueRequestEventArgs.cs" />
+    <Compile Include="TagDefinitions\WithTagDefinition.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Properties\Resources.resx">

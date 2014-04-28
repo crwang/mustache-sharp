@@ -8,7 +8,7 @@ namespace Mustache
     /// <summary>
     /// Generates text by substituting an object's values for placeholders.
     /// </summary>
-    public sealed class Generator
+    public class Generator
     {
         private readonly IGenerator _generator;
         private readonly List<EventHandler<KeyFoundEventArgs>> _foundHandlers;
@@ -86,7 +86,7 @@ namespace Mustache
             foreach (EventHandler<KeyFoundEventArgs> handler in _foundHandlers)
             {
                 keyScope.KeyFound += handler;
-                contextScope.KeyFound += handler;
+                contextScope.KeyFound += handler;                
             }
             foreach (EventHandler<KeyNotFoundEventArgs> handler in _notFoundHandlers)
             {

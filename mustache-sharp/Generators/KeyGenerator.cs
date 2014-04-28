@@ -12,14 +12,14 @@ namespace Mustache
         private readonly string _key;
         private readonly string _format;
         private readonly bool _isVariable;
-
+        private readonly bool _shouldHtmlEscape;
         /// <summary>
         /// Initializes a new instance of a KeyGenerator.
         /// </summary>
         /// <param name="key">The key to substitute with its value.</param>
         /// <param name="alignment">The alignment specifier.</param>
         /// <param name="formatting">The format specifier.</param>
-        public KeyGenerator(string key, string alignment, string formatting)
+        public KeyGenerator(string key, string alignment, string formatting, bool shouldHtmlEscape = true)
         {
             if (key.StartsWith("@"))
             {
@@ -32,6 +32,7 @@ namespace Mustache
                 _isVariable = false;
             }
             _format = getFormat(alignment, formatting);
+            _shouldHtmlEscape = shouldHtmlEscape;
         }
 
         private static string getFormat(string alignment, string formatting)
@@ -54,8 +55,10 @@ namespace Mustache
 
         void IGenerator.GetText(Scope scope, TextWriter writer, Scope context)
         {
-            object value = _isVariable ? context.Find(_key) : scope.Find(_key);
-            writer.Write(_format, value);
+            object value = _isVariable ? context.Find(_key, _shouldHtmlEscape) : scope.Find(_key, _shouldHtmlEscape);
+            if (_shouldHtmlEscape)
+                writer.Write(_format, System.Net.WebUtility.HtmlEncode(value as string));
+            else writer.Write(_format, value);
         }
     }
 }

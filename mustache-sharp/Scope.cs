@@ -78,12 +78,12 @@ namespace Mustache
         /// <param name="name">The name of the key.</param>
         /// <returns>The value associated with the key with the given name.</returns>
         /// <exception cref="System.Collections.Generic.KeyNotFoundException">A key with the given name could not be found.</exception>
-        internal object Find(string name)
+        internal object Find(string name, bool shouldHtmlEscape = true)
         {
             SearchResults results = tryFind(name);
             if (results.Found)
             {
-                return onKeyFound(name, results.Value);
+                return onKeyFound(name, results.Value, shouldHtmlEscape);
             }
             object value;
             if (onKeyNotFound(name, results.Member, out value))
@@ -94,13 +94,13 @@ namespace Mustache
             throw new KeyNotFoundException(message);
         }
 
-        private object onKeyFound(string name, object value)
+        private object onKeyFound(string name, object value, bool shouldHtmlEscape = true)
         {
             if (KeyFound == null)
             {
                 return value;
             }
-            KeyFoundEventArgs args = new KeyFoundEventArgs(name, value);
+            KeyFoundEventArgs args = new KeyFoundEventArgs(name, value, shouldHtmlEscape);
             KeyFound(this, args);
             return args.Substitute;
         }
